@@ -78,21 +78,20 @@ namespace Bencher
                 {
                     Interlocked.Increment(ref _counter);
 
-                    await session.ExecuteAsync<object>(
-                        "_p0",
-                        null,
-                        (f, c, l, b) =>
-                            {
-                                switch (c)
-                                {
-                                    case 0:
-                                        b.ReadInt();
-                                        break;
-                                    case 1:
-                                        b.ReadString(l);
-                                        break;
-                                }
-                            });
+                    void BindColumn(object _, ReadBuffer readBuffer, int index, int length)
+                    {
+                        switch (index)
+                        {
+                            case 0:
+                                readBuffer.ReadInt();
+                                break;
+                            case 1:
+                                readBuffer.ReadString(length);
+                                break;
+                        }
+                    }
+
+                    await session.ExecuteAsync<object>("_p0", null, BindColumn);
                 }
             }
         }

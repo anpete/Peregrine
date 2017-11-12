@@ -82,10 +82,10 @@ namespace Peregrine
             }
         }
 
-        public async Task ExecuteAsync<TRow>(
-            string statementName, 
-            Func<TRow> rowFactory,
-            Action<TRow, int, int, ReadBuffer> columnBinder)
+        public async Task ExecuteAsync<TResult>(
+            string statementName,
+            Func<TResult> resultFactory,
+            Action<TResult, ReadBuffer, int, int> columnBinder)
         {
             ThrowIfDisposed();
             ThrowIfNotConnected();
@@ -124,8 +124,11 @@ namespace Peregrine
                     goto read;
 
                 case MessageType.DataRow:
-
-                    //var row = rowFactory();
+                {
+                    var result
+                        = resultFactory != null
+                            ? resultFactory()
+                            : default;
 
                     var columns = _readBuffer.ReadShort();
 
@@ -133,16 +136,17 @@ namespace Peregrine
                     {
                         var length = _readBuffer.ReadInt();
 
-                        columnBinder(default, i, length, _readBuffer);
+                        columnBinder(result, _readBuffer, i, length);
                     }
 
                     goto read;
-
-                case MessageType.ErrorResponse:
-                    throw new InvalidOperationException(ReadErrorMessage());
+                }
 
                 case MessageType.CommandComplete:
                     return;
+
+                case MessageType.ErrorResponse:
+                    throw new InvalidOperationException(ReadErrorMessage());
 
                 default:
                     throw new NotImplementedException(message.Type.ToString());
@@ -208,11 +212,11 @@ namespace Peregrine
                     }
                 }
 
-                case MessageType.BackendKeyData:
-                case MessageType.EmptyQueryResponse:
                 case MessageType.ErrorResponse:
                     throw new InvalidOperationException(ReadErrorMessage());
 
+                case MessageType.BackendKeyData:
+                case MessageType.EmptyQueryResponse:
                 case MessageType.ParameterStatus:
                 case MessageType.ReadyForQuery:
                     throw new NotImplementedException($"Unhandled MessageType '{message.Type}'");

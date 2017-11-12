@@ -141,28 +141,29 @@ namespace Peregrine.Tests
 
                 var fortunes = new List<Fortune>();
 
-                await session.ExecuteAsync(
-                    "_p0",
-                    () =>
-                        {
-                            var fortune = new Fortune();
+                Fortune CreateFortune()
+                {
+                    var fortune = new Fortune();
 
-                            fortunes.Add(fortune);
+                    fortunes.Add(fortune);
 
-                            return fortune;
-                        },
-                    (f, c, l, b) =>
-                        {
-                            switch (c)
-                            {
-                                case 0:
-                                    f.Id = b.ReadInt();
-                                    break;
-                                case 1:
-                                    f.Message = b.ReadString(l);
-                                    break;
-                            }
-                        });
+                    return fortune;
+                }
+
+                void BindColumn(Fortune fortune, ReadBuffer readBuffer, int index, int length)
+                {
+                    switch (index)
+                    {
+                        case 0:
+                            fortune.Id = readBuffer.ReadInt();
+                            break;
+                        case 1:
+                            fortune.Message = readBuffer.ReadString(length);
+                            break;
+                    }
+                }
+
+                await session.ExecuteAsync("_p0", CreateFortune, BindColumn);
 
                 Assert.Equal(12, fortunes.Count);
             }
