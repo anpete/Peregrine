@@ -90,11 +90,6 @@ namespace Peregrine
             ThrowIfDisposed();
             ThrowIfNotConnected();
 
-            if (!IsConnected)
-            {
-                throw new InvalidOperationException();
-            }
-
             await _writeBuffer
                 .StartMessage('B')
                 .WriteNull()
